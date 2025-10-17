@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% block content %}
+  <section>
+    <h2>Статистика сессии</h2>
+    <div class="actions" style="margin-bottom:12px">
+      <button id="clear" class="btn">Очистить</button>
+    </div>
+    <div id="stats"></div>
+  </section>
+  <script type="module">
+    import { Storage } from '/static/js/storage.js';
+    const root = document.getElementById('stats');
+    const btn = document.getElementById('clear');
+    function render() {
+      const data = Storage.getSessionStats();
+      if (!data.length) { root.textContent = 'Пока нет данных.'; return; }
+      root.innerHTML = '';
+      const table = document.createElement('table');
+      table.style.width = '100%';
+      table.style.borderCollapse = 'collapse';
+      const header = document.createElement('tr');
+      header.innerHTML = '<th>Время</th><th>Игроков</th><th>Улица</th><th>Оценка</th><th>Win%</th><th>Ошибка</th>';
+      table.appendChild(header);
+      data.slice(-100).reverse().forEach(row => {
+        const tr = document.createElement('tr');
+        const err = Math.abs((row.guess||0) - (row.win||0));
+        tr.innerHTML = `<td>${new Date(row.ts).toLocaleString()}</td><td>${row.players}</td><td>${row.state}</td><td>${row.guess ?? ''}</td><td>${row.win ?? ''}</td><td>${err.toFixed(2)}</td>`;
+        table.appendChild(tr);
+      });
+      root.appendChild(table);
+    }
+    btn.addEventListener('click', () => { Storage.clear(); render(); });
+    render();
+  </script>
+{% endblock %}
+
+
