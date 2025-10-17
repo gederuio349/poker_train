@@ -21,19 +21,27 @@ body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.5 syst
 .app-header nav a { color: var(--muted); text-decoration: none; margin-left: 16px; }
 .app-header nav a:hover { color: var(--text); }
 
-.hero { margin: 24px 0; }
-.controls form { display: flex; gap: 12px; align-items: center; }
-input[type="number"] { background: var(--card); color: var(--text); border: 1px solid var(--border); padding: 8px 10px; border-radius: 8px; width: 120px; }
+.hero { margin: 24px 0; text-align: center; }
+.controls form { display: flex; gap: 12px; align-items: center; justify-content: center; }
+input[type="number"] { background: var(--card); color: var(--text); border: 1px solid var(--border); padding: 10px 12px; border-radius: 10px; width: 140px; font-size: 16px; }
 
 .btn { background: var(--card); color: var(--text); border: 1px solid var(--border); padding: 8px 14px; border-radius: 10px; cursor: pointer; }
 .btn.primary { background: var(--primary); border-color: var(--primary-600); }
 .btn.primary:hover { background: var(--primary-600); }
 .btn.outline { background: transparent; }
+.btn.btn-lg { padding: 12px 18px; font-size: 16px; }
+
+/* Полноэкранный лендинг */
+.landing { min-height: calc(100vh - 120px); display: flex; align-items: center; }
+.landing-inner { width: 100%; display: grid; gap: 20px; justify-items: center; text-align: center; padding: 24px 0; }
+.landing .hero h1 { margin: 0 0 8px; font-size: clamp(24px, 4vw, 40px); }
+.landing .hero p { margin: 0; color: var(--muted); font-size: clamp(14px, 2.2vw, 18px); }
+.landing-form { flex-wrap: wrap; }
 
 .table { position: relative; display: grid; gap: 16px; padding: 40px 24px 120px; background: radial-gradient(circle at 30% 30%, #0e4f2c, #07351e 70%); border: 2px solid #0b2618; border-radius: 48px; margin-bottom: 16px; box-shadow: inset 0 0 60px rgba(0,0,0,0.5); min-height: 420px; }
 .board { display: flex; gap: 12px; min-height: 140px; align-items: center; justify-content: center; }
 .seats { position: absolute; inset: 0; pointer-events: none; }
-.seat { position: absolute; width: 200px; height: 110px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.seat { position: absolute; width: 200px; height: 110px; display: flex; align-items: center; justify-content: center; gap: 8px; transform: translate(-50%, -50%); }
 .hero-seat { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); }
 .hero-cards { display: flex; gap: 12px; }
 .card { width: 88px; height: 124px; perspective: 800px; position: relative; }
@@ -42,7 +50,7 @@ input[type="number"] { background: var(--card); color: var(--text); border: 1px 
 .card .front { background: #ffffff; display: flex; align-items: center; justify-content: center; color: #111; font-weight: 800; font-size: 22px; }
 .card .back { background: repeating-linear-gradient(45deg, #1b3a94 0, #1b3a94 10px, #10276c 10px, #10276c 20px); transform: rotateY(180deg); }
 .card.revealed .inner { transform: rotateY(0deg); }
-.board .card { transform: translateY(-2px); }
+.board .card { transform: translateY(-2px); width: 80px; height: 112px; }
 
 /* Раскладка с боковой панелью */
 .layout { display: grid; grid-template-columns: 280px 1fr; gap: 16px; }
@@ -56,11 +64,25 @@ input[type="number"] { background: var(--card); color: var(--text); border: 1px 
 .card .front.red { color: #b91c1c; }
 
 /* Оппоненты: уменьшить карты */
-.seat .card { width: 64px; height: 90px; }
+.seat .card { width: 56px; height: 80px; }
+/* Чем больше игроков, тем меньше карты оппонентов */
+.players-6 .seat .card { width: 54px; height: 76px; }
+.players-7 .seat .card { width: 48px; height: 70px; }
+.players-8 .seat .card { width: 46px; height: 66px; }
+.players-9 .seat .card { width: 44px; height: 62px; }
+
+/* Увеличиваем стол на широких экранах */
+@media (min-width: 1200px) {
+  .table { padding: 56px 32px 140px; min-height: 560px; }
+  .board { min-height: 180px; gap: 14px; }
+  .card { width: 96px; height: 136px; }
+  .board .card { width: 88px; height: 124px; }
+  .hero-seat { bottom: 20px; }
+}
 @media (max-width: 900px) {
   .layout { grid-template-columns: 1fr; }
   .sidebar { position: relative; }
-  .seat .card { width: 56px; height: 80px; }
+  .seat .card { width: 50px; height: 72px; }
 }
 
 .odds-input { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
@@ -71,6 +93,7 @@ input[type="number"] { background: var(--card); color: var(--text); border: 1px 
 @media (max-width: 600px) {
   .container { padding: 12px; }
   .card { width: 72px; height: 102px; font-size: 18px; }
+  .landing { min-height: calc(100vh - 132px); }
 }
 
 

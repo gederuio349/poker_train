@@ -8,6 +8,8 @@ const showOddsBtn = document.getElementById('show-odds');
 const nextStreetBtn = document.getElementById('next-street');
 const oddsResultEl = document.getElementById('odds-result');
 const showdownBtn = document.getElementById('showdown');
+const submitGuessBtn = document.getElementById('submit-guess');
+const restartBtn = document.getElementById('restart');
 
 function clamp(val, min, max) { return Math.max(min, Math.min(max, val)); }
 
@@ -36,6 +38,15 @@ function renderInitial() {
   heroCardsEl.appendChild(cardNode('?', false));
 }
 
+function setControls(beforeGuess, isRiver) {
+  // beforeGuess=true: показываем только ввод, Подтвердить и Новый раунд
+  submitGuessBtn.style.display = beforeGuess ? '' : 'none';
+  restartBtn.style.display = '';
+  showOddsBtn.style.display = beforeGuess ? 'none' : '';
+  nextStreetBtn.style.display = beforeGuess ? 'none' : '';
+  showdownBtn.style.display = (!beforeGuess && isRiver) ? '' : 'none';
+}
+
 async function startRound(players) {
   const res = await fetch('/api/new_round', {
     method: 'POST',
@@ -50,20 +61,39 @@ async function startRound(players) {
     for (const c of data.board) boardEl.appendChild(cardNode(c, true));
     // расставим пустые места оппонентов
     seatsEl.innerHTML = '';
-    const players = parsePlayers();
-    const radiusX = 420; const radiusY = 220; const centerX = seatsEl.clientWidth/2; const centerY = seatsEl.clientHeight/2;
-    for (let i = 0; i < players - 1; i++) {
-      const angle = (Math.PI * 2) * (i / (players - 1));
+    const playersCount = parsePlayers();
+    // пометим стол классом для адаптивных размеров карт оппонентов
+    const table = document.getElementById('table');
+    table.className = `table players-${playersCount}`;
+
+    // Динамические радиусы эллипса на основе размера стола
+    const rect = table.getBoundingClientRect();
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+    const radiusX = Math.max(280, rect.width * 0.46);
+    const radiusY = Math.max(170, rect.height * 0.34);
+
+    // Сделаем «запретную дугу» снизу, где находятся карты героя
+    const forbiddenCenter = Math.PI / 2; // низ
+    const forbiddenArc = Math.PI / 3; // ~60°
+    const startAngle = forbiddenCenter + forbiddenArc / 2;
+    const endAngle = forbiddenCenter - forbiddenArc / 2 + Math.PI * 2;
+    const span = (endAngle - startAngle);
+
+    for (let i = 0; i < playersCount - 1; i++) {
+      const t = (i + 0.5) / (playersCount - 1); // немного смещаем чтобы симметричнее
+      const angle = startAngle + span * t;
       const x = centerX + Math.cos(angle) * radiusX;
       const y = centerY + Math.sin(angle) * radiusY;
       const seat = document.createElement('div');
       seat.className = 'seat';
-      seat.style.left = `${x - 100}px`;
-      seat.style.top = `${y - 55}px`;
+      seat.style.left = `${x}px`;
+      seat.style.top = `${y}px`;
       seat.appendChild(cardNode('?', false));
       seat.appendChild(cardNode('?', false));
       seatsEl.appendChild(seat);
     }
+    setControls(true, false);
   }
 }
 
@@ -104,13 +134,30 @@ document.addEventListener('DOMContentLoaded', async () => {
     guessEl.value = String(clamp(Number(guessEl.value) - 1, 0, 100));
   });
   showOddsBtn.addEventListener('click', showOdds);
+  submitGuessBtn.addEventListener('click', async () => {
+    const value = Number(guessEl.value);
+    const res = await fetch('/api/guess', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ value }) });
+    if (res.ok) {
+      const d = await res.json();
+      // после ввода шанса показываем проверку и переход
+      const isRiver = false; // неизвестно на этой стадии
+      setControls(false, isRiver);
+    }
+  });
+  restartBtn.addEventListener('click', async () => {
+    oddsResultEl.textContent = '';
+    await startRound(parsePlayers());
+  });
   nextStreetBtn.addEventListener('click', async () => {
     const res = await fetch('/api/board', { method: 'POST' });
     if (res.ok) {
       const data = await res.json();
       boardEl.innerHTML = '';
-    for (const c of data.board) boardEl.appendChild(cardNode(c, true));
+      for (const c of data.board) boardEl.appendChild(cardNode(c, true));
       oddsResultEl.textContent = `Открыта улица: ${data.state}`;
+      const isRiver = data.state === 'river';
+      // после открытия улицы снова требуется ввод шанса
+      setControls(true, isRiver);
     }
   });
   showdownBtn.addEventListener('click', async () => {
@@ -118,7 +165,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (res.ok) {
       const data = await res.json();
       boardEl.innerHTML = '';
-    for (const c of data.board) boardEl.appendChild(cardNode(c, true));
+      for (const c of data.board) boardEl.appendChild(cardNode(c, true));
     // анимировано раскрыть оппонентов
     const seatNodes = Array.from(seatsEl.querySelectorAll('.seat'));
     data.opponents.forEach((hand, idx) => {

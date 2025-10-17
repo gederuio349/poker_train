@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 from datetime import timedelta
 import os
-from poker.game import start_round, next_street
+from poker.game import start_round, next_street, submit_guess
 from poker.cards import serialize_cards, serialize_cards_ru
 from poker.monte_carlo import simulate_equity
 
@@ -45,6 +45,7 @@ def create_app() -> Flask:
             'hero': serialize_cards_ru(rnd['hero']),
             'board': serialize_cards_ru(rnd['board']),
             'state': rnd['state'],
+            'guess_required': True,
         })
 
     @app.post('/api/board')
@@ -60,7 +61,23 @@ def create_app() -> Flask:
         session['round'] = rnd
         return jsonify({
             'state': rnd['state'],
-            'board': serialize_cards_ru(rnd['board'])
+            'board': serialize_cards_ru(rnd['board']),
+            'guess_required': not rnd.get('guess_submitted', False)
+        })
+
+    @app.post('/api/guess')
+    def api_guess():
+        if 'round' not in session:
+            return jsonify({'error': 'round_not_initialized'}), 400
+        data = request.get_json(silent=True) or {}
+        value = data.get('value')
+        rnd = session['round']
+        rnd = submit_guess(rnd, value)
+        session['round'] = rnd
+        return jsonify({
+            'ok': True,
+            'state': rnd['state'],
+            'guess_required': not rnd.get('guess_submitted', False)
         })
 
     @app.post('/api/odds')
@@ -71,6 +88,8 @@ def create_app() -> Flask:
         max_error = float(data.get('max_error', 0.01))
         max_iters = int(data.get('max_iters', 200000))
         rnd = session['round']
+        if not rnd.get('guess_submitted'):
+            return jsonify({'error': 'guess_required_before_odds'}), 400
         p, t, l, se, iters = simulate_equity(rnd['players'], rnd['hero'], rnd['board'], max_error=max_error, max_iters=max_iters)
         return jsonify({'win': round(p * 100, 2), 'tie': round(t * 100, 2), 'lose': round(l * 100, 2), 'se': se, 'iters': iters})
 
@@ -83,6 +102,9 @@ def create_app() -> Flask:
         board = list(rnd.get('board', []))
         players = int(rnd.get('players', 5))
         hero = list(rnd.get('hero', []))
+        opponents = list(rnd.get('opponents', []))
+        if rnd.get('state') != 'river':
+            return jsonify({'error': 'showdown_only_on_river'}), 400
 
         # Доложим оставшиеся борд-карты до 5
         if len(board) < 5:
@@ -92,14 +114,9 @@ def create_app() -> Flask:
             board.extend(deck[:need])
             deck = deck[need:]
 
-        # Раздать оппонентам
-        opponents = []
-        for _ in range(players - 1):
-            if len(deck) < 2:
-                return jsonify({'error': 'deck_exhausted'}), 400
-            hand = [deck[0], deck[1]]
-            deck = deck[2:]
-            opponents.append(hand)
+        # Оппоненты уже розданы в начале раунда и фиксированы
+        if len(opponents) != players - 1:
+            return jsonify({'error': 'opponents_not_initialized'}), 400
 
         # Оценка победителей
         from poker.hand_rank import best5_of7_rank
