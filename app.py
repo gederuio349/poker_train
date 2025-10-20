@@ -34,10 +34,9 @@ def create_app() -> Flask:
         data = request.get_json(silent=True) or {}
         players = int(data.get('players', 5))
         players = max(2, min(players, 9))
-
         # Инициализация раунда
         session.permanent = True
-        rnd = start_round(players, seed=data.get('seed'))
+        rnd = start_round(players)
         session['round'] = rnd
         return jsonify({
             'ok': True,
@@ -70,8 +69,10 @@ def create_app() -> Flask:
         if 'round' not in session:
             return jsonify({'error': 'round_not_initialized'}), 400
         data = request.get_json(silent=True) or {}
+        print('data guess:', data)
         value = data.get('value')
         rnd = session['round']
+        print('rnd:', rnd)
         rnd = submit_guess(rnd, value)
         session['round'] = rnd
         return jsonify({
@@ -85,6 +86,7 @@ def create_app() -> Flask:
         if 'round' not in session:
             return jsonify({'error': 'round_not_initialized'}), 400
         data = request.get_json(silent=True) or {}
+        print('data odds:', data)
         max_error = float(data.get('max_error', 0.01))
         max_iters = int(data.get('max_iters', 200000))
         rnd = session['round']

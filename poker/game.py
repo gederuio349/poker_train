@@ -15,6 +15,9 @@ def start_round(players: int, seed: Optional[int] = None) -> Dict:
     for _ in range(players - 1):
         hand, deck = draw(deck, 2)
         opponents.append(hand)
+    print('opponents:', opponents)
+    print('hero:', hero)
+    print('deck:', deck)
     # Скрытый борд (пока пуст)
     return {
         'players': players,

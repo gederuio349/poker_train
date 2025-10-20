@@ -40,11 +40,16 @@ function renderInitial() {
 
 function setControls(beforeGuess, isRiver) {
   // beforeGuess=true: показываем только ввод, Подтвердить и Новый раунд
+  console.log('setControls called with beforeGuess:', beforeGuess, 'isRiver:', isRiver);
   submitGuessBtn.style.display = beforeGuess ? '' : 'none';
   restartBtn.style.display = '';
   showOddsBtn.style.display = beforeGuess ? 'none' : '';
-  nextStreetBtn.style.display = beforeGuess ? 'none' : '';
-  showdownBtn.style.display = (!beforeGuess && isRiver) ? '' : 'none';
+  // Кнопка "Следующая улица" не показывается на ривере
+  nextStreetBtn.style.display = (beforeGuess || isRiver) ? 'none' : '';
+  // Кнопка вскрыться показывается только на ривере И только после ввода оценки
+  showdownBtn.style.display = (isRiver && !beforeGuess) ? '' : 'none';
+  console.log('showdownBtn display:', showdownBtn.style.display);
+  console.log('nextStreetBtn display:', nextStreetBtn.style.display);
 }
 
 async function startRound(players) {
@@ -140,7 +145,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (res.ok) {
       const d = await res.json();
       // после ввода шанса показываем проверку и переход
-      const isRiver = false; // неизвестно на этой стадии
+      // нужно определить, на какой улице мы находимся, чтобы правильно показать кнопку вскрыться
+      const currentState = d.state || 'preflop';
+      const isRiver = currentState === 'river';
+      console.log('Current state:', currentState, 'isRiver:', isRiver);
       setControls(false, isRiver);
     }
   });

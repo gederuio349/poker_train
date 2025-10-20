@@ -63,7 +63,7 @@ def new_deck() -> List[int]:
 
 def shuffled_deck(seed: Optional[int] = None) -> List[int]:
     deck = new_deck()
-    rng = random.Random(seed)
+    rng = random.Random()
     rng.shuffle(deck)
     return deck
 
