@@ -11,7 +11,128 @@ const showdownBtn = document.getElementById('showdown');
 const submitGuessBtn = document.getElementById('submit-guess');
 const restartBtn = document.getElementById('restart');
 
+// Элементы модального окна
+const modal = document.getElementById('showdown-modal');
+const modalBody = document.getElementById('modal-body');
+const closeModalBtn = document.getElementById('close-modal');
+
 function clamp(val, min, max) { return Math.max(min, Math.min(max, val)); }
+
+function showModal() {
+  modal.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+function hideModal() {
+  modal.style.display = 'none';
+  document.body.style.overflow = 'auto';
+}
+
+function createCardElement(cardText) {
+  const cardEl = document.createElement('div');
+  cardEl.className = 'winner-card';
+  cardEl.textContent = cardText;
+  // Красные масти: ♥ ♦
+  if (/[♥♦]/.test(cardText)) cardEl.classList.add('red');
+  return cardEl;
+}
+
+function renderWinningInfo(winningInfo) {
+  modalBody.innerHTML = '';
+  
+  // Проверяем, победил ли герой
+  const heroWon = winningInfo['0'] !== undefined;
+  
+  // Показываем информацию о победителях
+  for (const [playerIndex, info] of Object.entries(winningInfo)) {
+    // Пропускаем специальный ключ для проигравшего героя
+    if (playerIndex === 'hero_lost') continue;
+    
+    const winnerDiv = document.createElement('div');
+    winnerDiv.className = 'winner-info';
+    
+    const title = document.createElement('div');
+    title.className = 'winner-title';
+    title.textContent = playerIndex === '0' ? 'Герой' : `Оппонент ${playerIndex}`;
+    
+    const cardsDiv = document.createElement('div');
+    cardsDiv.className = 'winner-cards';
+    
+    // Разделяем карты: первые 2 - карты игрока, остальные 5 - карты стола
+    const playerCards = info.cards.slice(0, 2);  // Карты игрока
+    const boardCardsForPlayer = info.cards.slice(2, 7);   // Карты стола
+    
+    // Добавляем карты игрока с зеленой подсветкой
+    playerCards.forEach(cardText => {
+      const cardEl = createCardElement(cardText);
+      cardEl.classList.add('player-card');
+      cardsDiv.appendChild(cardEl);
+    });
+    
+    // Добавляем разделитель
+    const separator = document.createElement('div');
+    separator.className = 'winner-cards-separator';
+    cardsDiv.appendChild(separator);
+    
+    // Добавляем карты стола
+    boardCardsForPlayer.forEach(cardText => {
+      cardsDiv.appendChild(createCardElement(cardText));
+    });
+    
+    const description = document.createElement('div');
+    description.className = 'hand-description';
+    description.textContent = info.description;
+    
+    winnerDiv.appendChild(title);
+    winnerDiv.appendChild(cardsDiv);
+    winnerDiv.appendChild(description);
+    modalBody.appendChild(winnerDiv);
+  }
+  
+  // Если герой не победил, показываем его карты с красными границами
+  if (!heroWon && winningInfo['hero_lost']) {
+    const heroInfo = winningInfo['hero_lost'];
+    const heroDiv = document.createElement('div');
+    heroDiv.className = 'winner-info';
+    
+    const heroTitle = document.createElement('div');
+    heroTitle.className = 'winner-title';
+    heroTitle.textContent = 'Герой (проиграл)';
+    
+    const heroCardsDiv = document.createElement('div');
+    heroCardsDiv.className = 'winner-cards';
+    
+    // Разделяем карты героя: первые 2 - карты героя, остальные 5 - карты стола
+    const heroPlayerCards = heroInfo.cards.slice(0, 2);  // Карты героя
+    const heroBoardCards = heroInfo.cards.slice(2, 7);    // Карты стола
+    
+    // Добавляем карты героя с красными границами
+    heroPlayerCards.forEach(cardText => {
+      const cardEl = createCardElement(cardText);
+      cardEl.classList.add('hero-card');
+      heroCardsDiv.appendChild(cardEl);
+    });
+    
+    // Добавляем разделитель
+    const heroSeparator = document.createElement('div');
+    heroSeparator.className = 'winner-cards-separator';
+    heroCardsDiv.appendChild(heroSeparator);
+    
+    // Добавляем карты стола
+    heroBoardCards.forEach(cardText => {
+      heroCardsDiv.appendChild(createCardElement(cardText));
+    });
+    
+    const heroDescription = document.createElement('div');
+    heroDescription.className = 'hand-description';
+    heroDescription.textContent = heroInfo.description;
+    
+    heroDiv.appendChild(heroTitle);
+    heroDiv.appendChild(heroCardsDiv);
+    heroDiv.appendChild(heroDescription);
+    modalBody.appendChild(heroDiv);
+  }
+}
 
 function cardNode(label = '?', revealed = false) {
   const el = document.createElement('div');
@@ -174,17 +295,26 @@ document.addEventListener('DOMContentLoaded', async () => {
       const data = await res.json();
       boardEl.innerHTML = '';
       for (const c of data.board) boardEl.appendChild(cardNode(c, true));
-    // анимировано раскрыть оппонентов
-    const seatNodes = Array.from(seatsEl.querySelectorAll('.seat'));
-    data.opponents.forEach((hand, idx) => {
-      const seat = seatNodes[idx];
-      if (!seat) return;
-      seat.innerHTML = '';
-      setTimeout(() => { seat.appendChild(cardNode(hand[0], true)); }, 150 * idx);
-      setTimeout(() => { seat.appendChild(cardNode(hand[1], true)); }, 150 * idx + 150);
-    });
-    const winText = data.winners.includes(0) ? 'Победа героя' : `Победители: ${data.winners.join(',')}`;
-    oddsResultEl.textContent = winText;
+      
+      // анимировано раскрыть оппонентов
+      const seatNodes = Array.from(seatsEl.querySelectorAll('.seat'));
+      data.opponents.forEach((hand, idx) => {
+        const seat = seatNodes[idx];
+        if (!seat) return;
+        seat.innerHTML = '';
+        setTimeout(() => { seat.appendChild(cardNode(hand[0], true)); }, 150 * idx);
+        setTimeout(() => { seat.appendChild(cardNode(hand[1], true)); }, 150 * idx + 150);
+      });
+      
+      const winText = data.winners.includes(0) ? 'Победа героя' : `Победители: ${data.winners.join(',')}`;
+      oddsResultEl.textContent = winText;
+      
+      // Показываем модальное окно с детальной информацией о выигрышных комбинациях
+      if (data.winning_info) {
+        renderWinningInfo(data.winning_info);
+        showModal();
+      }
+      
       // сохранить в статистику результат последней оценки, если была
       try {
         const stats = JSON.parse(localStorage.getItem('pt_last_odds') || '{}');
@@ -194,8 +324,18 @@ document.addEventListener('DOMContentLoaded', async () => {
       } catch {}
     }
   });
-  // Клавиатурные шорткаты +/-
+  // Обработчики модального окна
+  closeModalBtn.addEventListener('click', hideModal);
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) hideModal();
+  });
+  
+  // Закрытие модального окна по Escape
   window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modal.style.display === 'flex') {
+      hideModal();
+    }
+    // Клавиатурные шорткаты +/-
     if (e.key === 'ArrowRight') incBtn.click();
     if (e.key === 'ArrowLeft') decBtn.click();
   });

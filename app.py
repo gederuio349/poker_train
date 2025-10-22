@@ -2,8 +2,9 @@ from flask import Flask, render_template, request, jsonify, session, redirect, u
 from datetime import timedelta
 import os
 from poker.game import start_round, next_street, submit_guess
-from poker.cards import serialize_cards, serialize_cards_ru
+from poker.cards import serialize_cards_ru
 from poker.monte_carlo import simulate_equity
+from poker.hand_rank import best5_of7_rank, get_hand_description
 
 
 def create_app() -> Flask:
@@ -69,10 +70,8 @@ def create_app() -> Flask:
         if 'round' not in session:
             return jsonify({'error': 'round_not_initialized'}), 400
         data = request.get_json(silent=True) or {}
-        print('data guess:', data)
         value = data.get('value')
         rnd = session['round']
-        print('rnd:', rnd)
         rnd = submit_guess(rnd, value)
         session['round'] = rnd
         return jsonify({
@@ -86,7 +85,6 @@ def create_app() -> Flask:
         if 'round' not in session:
             return jsonify({'error': 'round_not_initialized'}), 400
         data = request.get_json(silent=True) or {}
-        print('data odds:', data)
         max_error = float(data.get('max_error', 0.01))
         max_iters = int(data.get('max_iters', 200000))
         rnd = session['round']
@@ -120,27 +118,47 @@ def create_app() -> Flask:
         if len(opponents) != players - 1:
             return jsonify({'error': 'opponents_not_initialized'}), 400
 
-        # Оценка победителей
-        from poker.hand_rank import best5_of7_rank
+        
         hero_rank = best5_of7_rank(hero + board)
         all_ranks = [hero_rank]
+        all_hands = [hero + board]  # Все карты каждого игрока (2 карты + 5 борда)
         for opp in opponents:
             all_ranks.append(best5_of7_rank(opp + board))
+            all_hands.append(opp + board)
         best_rank = max(all_ranks)
         winners = [i for i, rk in enumerate(all_ranks) if rk == best_rank]
+        
+        # Создаем словарь с информацией о выигрышных комбинациях
+        winning_info = {}
+        for winner_idx in winners:
+            player_cards = all_hands[winner_idx]
+            winning_info[str(winner_idx)] = {  # Преобразуем ключ в строку
+                'cards': serialize_cards_ru(player_cards),
+                'rank': all_ranks[winner_idx][0],  # категория руки (0-8)
+                'description': get_hand_description(all_ranks[winner_idx])
+            }
+        
+        # Если герой не победил, добавляем его информацию для отображения
+        if 0 not in winners:
+            hero_cards = hero + board
+            winning_info['hero_lost'] = {
+                'cards': serialize_cards_ru(hero_cards),
+                'rank': all_ranks[0][0],  # категория руки героя
+                'description': get_hand_description(all_ranks[0])
+            }
 
         # Обновим сессию как завершённый раунд
         rnd['deck'] = deck
         rnd['board'] = board
         rnd['state'] = 'showdown'
         session['round'] = rnd
-
         return jsonify({
             'state': rnd['state'],
             'hero': serialize_cards_ru(hero),
             'board': serialize_cards_ru(board),
             'opponents': [serialize_cards_ru(h) for h in opponents],
             'winners': winners,  # 0 — герой; 1..N — оппоненты
+            'winning_info': winning_info  # Детальная информация о выигрышных комбинациях
         })
 
     return app

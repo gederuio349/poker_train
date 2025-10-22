@@ -99,4 +99,18 @@ def best5_of7_rank(cards7: List[int]) -> Tuple[int, Tuple[int, ...]]:
     return 0, tuple(ranks[:5])
 
 
-
+def get_hand_description(rank_tuple):
+    """Возвращает описание покерной руки на русском языке"""
+    category = rank_tuple[0]
+    descriptions = {
+        8: "Стрит-флеш",
+        7: "Каре", 
+        6: "Фулл-хаус",
+        5: "Флеш",
+        4: "Стрит",
+        3: "Тройка",
+        2: "Две пары",
+        1: "Пара",
+        0: "Старшая карта"
+    }
+    return descriptions.get(category, "Неизвестная комбинация")

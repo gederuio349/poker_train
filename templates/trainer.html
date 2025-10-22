@@ -52,6 +52,20 @@
       </div>
     </div>
   </section>
+  
+  <!-- Модальное окно для результатов showdown -->
+  <div id="showdown-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Результаты вскрытия</h2>
+        <button id="close-modal" class="close-btn">&times;</button>
+      </div>
+      <div class="modal-body" id="modal-body">
+        <!-- Здесь будет динамически добавлена информация о выигрышных комбинациях -->
+      </div>
+    </div>
+  </div>
+  
   <script src="{{ url_for('static', filename='js/trainer.js') }}" type="module"></script>
 {% endblock %}
 
