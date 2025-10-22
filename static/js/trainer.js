@@ -251,6 +251,8 @@ function parsePlayers() {
 document.addEventListener('DOMContentLoaded', async () => {
   const players = parsePlayers();
   renderInitial();
+  // Убираем зеленый цвет кнопки при загрузке страницы
+  restartBtn.classList.remove('showdown-completed');
   await startRound(players);
 
   incBtn.addEventListener('click', () => {
@@ -275,6 +277,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
   restartBtn.addEventListener('click', async () => {
     oddsResultEl.textContent = '';
+    // Убираем зеленый цвет кнопки при начале нового раунда
+    restartBtn.classList.remove('showdown-completed');
     await startRound(parsePlayers());
   });
   nextStreetBtn.addEventListener('click', async () => {
@@ -306,8 +310,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         setTimeout(() => { seat.appendChild(cardNode(hand[1], true)); }, 150 * idx + 150);
       });
       
-      const winText = data.winners.includes(0) ? 'Победа героя' : `Победители: ${data.winners.join(',')}`;
-      oddsResultEl.textContent = winText;
+      // Убираем отображение победителей - теперь эта информация не нужна
+      oddsResultEl.textContent = '';
+      
+      // Меняем цвет кнопки "Новый раунд" на зеленый после вскрытия
+      restartBtn.classList.add('showdown-completed');
       
       // Показываем модальное окно с детальной информацией о выигрышных комбинациях
       if (data.winning_info) {

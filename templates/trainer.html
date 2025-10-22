@@ -34,7 +34,10 @@
         </div>
 
         <div class="odds-input">
-          <label for="guess">Твой шанс победы (%)</label>
+          <div class="odds-header">
+            <label for="guess">Твой шанс победы (%)</label>
+            <button id="restart" class="btn restart-btn" type="button">Новый раунд</button>
+          </div>
           <div class="guess-row">
             <button id="dec" type="button" class="btn">−</button>
             <input id="guess" type="number" min="0" max="100" step="0.5" value="50">
@@ -42,7 +45,6 @@
           </div>
           <div class="actions">
             <button id="submit-guess" class="btn primary" type="button">Подтвердить</button>
-            <button id="restart" class="btn" type="button">Новый раунд</button>
             <button id="show-odds" class="btn outline" type="button" style="display:none">Показать правильный результат</button>
             <button id="next-street" class="btn" type="button" style="display:none">Далее</button>
             <button id="showdown" class="btn" type="button" style="display:none">Вскрытие</button>
